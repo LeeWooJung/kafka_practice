@@ -1,0 +1,104 @@
+version: '2'
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper:latest
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+
+  kafka:
+    #build: . # DockerFile
+    image: wurstmeister/kafka:latest
+    container_name: kafka
+    restart: "no"
+    links:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://:29092,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: "0000"
+      #MYSQL_USER: debezium
+      #MYSQL_PASSWORD: "0000"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+    # 실제 물리 folder : docker 내부 folder path
+      - ./db/initdb.d:/docker-entrypoint-initdb.d
+      - ./db/config/my.conf:/etc/mysql/conf.d/my.conf
+      - /var/lib/mysql
+
+  kafka-connect:
+    image: debezium/connect:2.7.3.Final
+    container_name: kafka-connect
+    ports:
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      #GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: connect-configs
+      OFFSET_STORAGE_TOPIC: connect-offsets
+      STATUS_STORAGE_TOPIC: connect-status
+      #KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      #VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      #CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      #OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      #STATUS_STORAGE_REPLICATION_FACTOR: 1
+      #CONNECT_PLUGIN_PATH: /kafka/connect/plugins
+    #volumes:
+    #  - ./connect-plugins:/kafka/connect
+    links:
+      - zookeeper
+      - mysql
+    depends_on:
+      - kafka
+      - zookeeper
+      - mysql
+
+ # New kafka-connect-sink service with custom Dockerfile
+  kafka-connect-sink:
+    build:
+      context: .
+      dockerfile: DockerFile  # MySQL JDBC 드라이버를 추가한 Dockerfile
+    container_name: kafka-connect-sink
+    ports:
+      - "8084:8083"  # 다른 포트 사용
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka:29092
+      CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: connect-status
+      CONNECT_GROUP_ID: sink-connect-group
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect-sink
+      # Kafka Connect 토픽 설정 추가
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 3
+      CONNECT_CONFIG_STORAGE_PARTITIONS: 1
+      CONNECT_OFFSET_STORAGE_PARTITIONS: 1
+      CONNECT_STATUS_STORAGE_PARTITIONS: 1
+      CONNECT_CONFIG_STORAGE_CLEANUP_POLICY: compact
+      CONNECT_OFFSET_STORAGE_CLEANUP_POLICY: compact
+      CONNECT_STATUS_STORAGE_CLEANUP_POLICY: compact
+      CONNECT_PLUGIN_PATH: /usr/share/java/kafka-connect-plugins
+    depends_on:
+      - kafka
+      - zookeeper
+      - mysql
