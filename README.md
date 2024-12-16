@@ -27,7 +27,18 @@ Docker를 활용한 Kafka와 MySQL 데이터 파이프라인
 
 ## [Source Connector](https://github.com/LeeWooJung/kafka_practice/tree/main/connector#source-connector)
 
-debezium connector 사용
+**debezium connector 사용**
+
+Source connector 설정
+``` bash
+source-connector.json
+```
+
+Source connector 실행파일
+``` bash
+setup-source-connectors.sh
+```
+
 
 * image
 
@@ -72,7 +83,18 @@ Message 브로커 역할
 
 ## [Sink Connector](https://github.com/LeeWooJung/kafka_practice/tree/main/connector#sink-connector)
 
-jdbc connector 사용
+**jdbc connector 사용**
+
+Sink connector 설정
+``` bash
+sink-connector.json
+```
+
+Sink connector 실행파일
+``` bash
+setup-sink-connectors.sh
+```
+
 
 * DockerFile로 정의
 
