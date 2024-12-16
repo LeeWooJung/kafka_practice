@@ -44,7 +44,10 @@ services:
       - /var/lib/mysql
 
   kafka-connect:
-    image: debezium/connect:2.7.3.Final
+    #image: debezium/connect:2.7.3.Final
+    build:
+      context: .
+      dockerfile: source-connector-dockerfile
     container_name: kafka-connect
     ports:
       - "8083:8083"
@@ -62,9 +65,9 @@ services:
       #CONNECT_PLUGIN_PATH: /kafka/connect/plugins
     #volumes:
     #  - ./connect-plugins:/kafka/connect
-    links:
-      - zookeeper
-      - mysql
+    #links:
+    #  - zookeeper
+    #  - mysql
     depends_on:
       - kafka
       - zookeeper
@@ -74,7 +77,7 @@ services:
   kafka-connect-sink:
     build:
       context: .
-      dockerfile: DockerFile  # MySQL JDBC 드라이버를 추가한 Dockerfile
+      dockerfile: sink-connector-dockerfile  # MySQL JDBC 드라이버를 추가한 Dockerfile
     container_name: kafka-connect-sink
     ports:
       - "8084:8083"  # 다른 포트 사용
