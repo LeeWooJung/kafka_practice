@@ -1,0 +1,23 @@
+FROM confluentinc/cp-kafka-connect:7.4.0
+
+USER root
+
+# MySQL JDBC 드라이버 다운로드
+RUN mkdir -p /usr/share/java/kafka-connect-plugins \
+  && chmod -R 755 /usr/share/java/kafka-connect-plugins \
+  && curl -L -o /usr/share/java/kafka-connect-plugins/mysql-connector-java.tar.gz https://downloads.mysql.com/archives/get/p/3/file/mysql-connector-j-8.0.33.tar.gz \
+  && tar -xvzf /usr/share/java/kafka-connect-plugins/mysql-connector-java.tar.gz --strip-components=1 -C /usr/share/java/kafka \
+  && rm /usr/share/java/kafka-connect-plugins/mysql-connector-java.tar.gz
+
+# Kafka JDBC Sink Connector 다운로드
+RUN curl -L -o /usr/share/java/kafka-connect-plugins/kafka-connect-jdbc.jar https://packages.confluent.io/maven/io/confluent/kafka-connect-jdbc/10.0.11/kafka-connect-jdbc-10.0.11.jar
+
+# 초기화 스크립트 및 설정 파일 복사
+COPY setup-sink-connectors.sh /scripts/setup-sink-connectors.sh
+COPY sink-connector.json /config/sink-connector.json
+
+# 실행 권한 부여
+RUN chmod +x /scripts/setup-sink-connectors.sh
+
+# Kafka Connect 시작 후 스크립트 실행
+CMD ["sh", "-c", "/scripts/setup-sink-connectors.sh & /etc/confluent/docker/run"]
