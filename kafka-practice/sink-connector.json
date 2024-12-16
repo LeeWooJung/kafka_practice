@@ -1,0 +1,20 @@
+{
+    "name": "mysql-sink-connector",
+    "config": {
+      "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
+      "tasks.max": "1",
+      "topics": "topic-test.sourcedb.employee",
+      "connection.url": "jdbc:mysql://mysql:3306/sinkdb?user=root&password=0000",
+      "table.name.format": "employee_history",
+      "auto.create": "true",
+      "auto.evolve": "true",
+      "insert.mode": "upsert",
+      "pk.fields": "identification_id",
+      "pk.mode": "record_key",
+      "fields.whitelist": "identification_id,name,department, created_time",
+      "transforms": "AddTimestamp",
+      "transforms.AddTimestamp.type": "org.apache.kafka.connect.transforms.InsertField$Value",
+      "transforms.AddTimestamp.timestamp.field": "created_time"
+    }
+  }
+  
